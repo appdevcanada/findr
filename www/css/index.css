@@ -1,0 +1,47 @@
+@import url("../css/SF.otf");
+
+* {
+    -webkit-tap-highlight-color: rgba(0,0,0,0); /* make transparent link selection, adjust last value opacity 0 to 1.0 */
+    box-sizing: border-box;
+}
+
+body {
+    -webkit-touch-callout: none;                /* prevent callout to copy image, etc when tap to hold */
+    -webkit-text-size-adjust: none;             /* prevent webkit from resizing text to fit */
+    -webkit-user-select: none;                  /* prevent copy paste, to allow, change 'none' to 'text' */
+    padding-top: 1.25rem;                       /* iOs 10 or lower */
+    padding-top: constant(safe-area-inset-top); /* iOS 11.0 */
+    padding-top: env(safe-area-inset-top);      /* iOS 11.2 */
+    background-color: rgb(255, 255, 255);
+    font-family: 'SF Compact Rounded Regular', Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1rem;
+    width: 100%;
+    height: 100%;
+    margin: 0px;
+    padding: 0px;
+}
+
+#map {
+  width: 100vw;
+  height: 100vh;
+}
+
+@media screen and (max-width:684px) {
+    /* input, button {
+        width: 60px;
+    } */
+}
+
+@media screen and (max-width:592px) {
+    /* input, button {
+        width: 50px;
+    } */
+}
+
+@media screen and (max-width:360px) {
+    /* input, button {
+        width: 40px;
+    } */
+}
+
