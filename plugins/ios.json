@@ -1,0 +1,21 @@
+{
+  "prepare_queue": {
+    "installed": [],
+    "uninstalled": []
+  },
+  "config_munge": {
+    "files": {}
+  },
+  "installed_plugins": {
+    "cordova-plugin-whitelist": {
+      "PACKAGE_NAME": "ca.edumedia.mora0199.findr"
+    },
+    "cordova-plugin-splashscreen": {
+      "PACKAGE_NAME": "ca.edumedia.mora0199.findr"
+    },
+    "cordova-plugin-geolocation": {
+      "PACKAGE_NAME": "ca.edumedia.mora0199.findr"
+    }
+  },
+  "dependent_plugins": {}
+}

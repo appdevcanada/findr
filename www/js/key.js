@@ -1,0 +1,1 @@
+const API_KEY_FOR_IOS = "AIzaSyDQOn6IchqeM1trUSPJwFq3eN9Lj_cS7ss";
