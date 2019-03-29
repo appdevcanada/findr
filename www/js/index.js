@@ -40,6 +40,8 @@ let app = {
       }
       map = new google.maps.Map(document.querySelector("#map"), {
         center: new google.maps.LatLng(45.4215, -75.6972),
+        mapTypeControl: false,
+        disableDoubleClickZoom: true,
         zoom: 14
       });
       var infoWindow = new google.maps.InfoWindow();
@@ -52,6 +54,7 @@ let app = {
         map.setCenter(pos);
         let marker = new google.maps.Marker({
           position: new google.maps.LatLng(pos.lat, pos.lng),
+          label: "H",
           map: map
         });
         infoWindow.setPosition(marker.position);
@@ -61,7 +64,6 @@ let app = {
         });
         map.addListener('dblclick', function (e) {
           app.saveLS(map, e.latLng);
-          // e.preventDefault();
         });
       }, function () {
         app.handleLocationError(true, infoWindow, map.getCenter());
@@ -70,10 +72,10 @@ let app = {
     } else { app.handleLocationError(false, infoWindow, map.getCenter()); }
   },
   injectScript: function () {
-    // let doc = document.createElement("script");
-    // doc.addEventListener("load", app.loadEvents);
-    // doc.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY_FOR_IOS}`;
-    // document.head.appendChild(doc);
+    let doc = document.createElement("script");
+    doc.addEventListener("load", app.loadEvents);
+    doc.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY_FOR_IOS}`;
+    document.head.appendChild(doc);
   },
   handleLocationError: function (browserHasGeolocation, infoWindow, pos) {
     infoWindow.setPosition(pos);
@@ -88,38 +90,48 @@ let app = {
       app.points = JSON.parse(lsPoint);
       for (let i = 0; i < app.points.length; i++) {
         let marker = new google.maps.Marker({
+          _id: app.points[i]["_id"],
           position: app.points[i]["position"],
           map: map
         });
-        infoWindow = new google.maps.InfoWindow();
+        let infoWindow = new google.maps.InfoWindow();
         infoWindow.setPosition(app.points[i]["position"]);
         infoWindow.setContent(app.points[i]["title"]);
         marker.addListener('click', () => {
           infoWindow.open(map, marker);
-          return false;
         });
         marker.addListener('dblclick', () => {
           marker.setMap(null);
-          return false;
+          for (let i = 0; i < app.points.length; i++) {
+            if (app.points[i]["_id"] == marker._id) {
+              app.points.splice(app.points.indexOf(i), 1);
+              localStorage.setItem("Points", JSON.stringify(app.points));
+            }
+          }
         });
       };
+      console.log(localStorage['Points']);
     }
   },
   saveLS: function (map, pos) {
     map.panTo(pos);
     let newPin = window.prompt("Type a comment:");
+    let currId = new Date().getTime();
     if (newPin != "") {
       let newPoint = {
+        _id: currId,
         position: pos,
         title: newPin
       };
-      var marker = new google.maps.Marker({
+      let marker = new google.maps.Marker({
+        _id: currId,
         position: pos,
         map: map
       });
-      infoWindow = new google.maps.InfoWindow();
+      let infoWindow = new google.maps.InfoWindow();
       infoWindow.setPosition(marker.position);
       infoWindow.setContent(newPin);
+
       marker.addListener('click', () => {
         infoWindow.open(map, marker);
       });
@@ -132,6 +144,11 @@ let app = {
         app.points = [newPoint];
       }
       localStorage.setItem("Points", JSON.stringify(app.points));
+      marker.addListener('dblclick', () => {
+        marker.setMap(null);
+        app.points.splice(app.points.length - 1, 1);
+        localStorage.setItem("Points", JSON.stringify(app.points));
+      });
       console.log(localStorage['Points']);
     }
   }
