@@ -114,10 +114,10 @@ let app = {
     }
   },
   saveLS: function (map, pos) {
-    map.panTo(pos);
     let newPin = window.prompt("Type a comment:");
     let currId = new Date().getTime();
-    if (newPin != "") {
+    if (newPin != "" && newPin != null) {
+      map.panTo(pos);
       let newPoint = {
         _id: currId,
         position: pos,
