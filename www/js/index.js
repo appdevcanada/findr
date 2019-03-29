@@ -1,9 +1,11 @@
 // Author: Luis Souza
-// REMEMBRALL App - just a simple app that saves
-// reminders and shows them using Local Notifications
+// FINDR App - just a simple app that shows Google Maps
+// and saves tapped locations for the user
+/* globals API_KEY_FOR_IOS */
 
 let app = {
-  pages: [],
+  map: null,
+  points: [],
   init: function () {
     document.addEventListener('deviceready', app.ready, false);
   },
@@ -24,119 +26,115 @@ let app = {
     document.addEventListener('resume', () => {
       console.log('system resumed');
     });
-    document.querySelector('#rem-add').addEventListener('click', app.add);
-    document.querySelector('#lblCancel').addEventListener('click', app.cancel);
-    document.querySelector('#lblDone').addEventListener('click', app.save);
+    app.injectScript();
     app.loadEvents();
   },
   loadEvents: function () {
-    let remList = document.querySelector("#remList");
-    remList.innerHTML = "";
-    let notification = cordova.plugins.notification.local;
-    notification.getAll(elements => {
-      elements.sort((a, b) => {
-        return a.at - b.at;
-      }).forEach(item => {
-        let listLine = document.createElement("li");
-        listLine.setAttribute("class", "remind-item");
-        listLine.setAttribute("id", item.id);
-        let h4Line = document.createElement("h4");
-        h4Line.setAttribute("class", "remind-lbl");
-        h4Line.setAttribute("id", item.id);
-        h4Line.textContent = item.title;
-        let h5Line = document.createElement("h5");
-        h5Line.setAttribute("class", "remind-dt");
-        h5Line.setAttribute("id", item.id);
-        let ndate = new Date(item.at);
-        let newDate = ndate.toISOString().slice(0, 10);
-        let newTime = ndate.getUTCHours() + ':' + ndate.getUTCMinutes();
-        h5Line.textContent = moment(newDate).format('ll') + " @ " + newTime;
-        let btnDel = document.createElement("input");
-        btnDel.setAttribute("type", "button");
-        btnDel.setAttribute("class", "remind-del");
-        btnDel.setAttribute("id", item.id);
-
-        remList.appendChild(listLine);
-        listLine.appendChild(h4Line);
-        listLine.appendChild(h5Line);
-        listLine.appendChild(btnDel);
-        remList.addEventListener("click", app.update);
-        btnDel.addEventListener("click", app.delete);
-      });
-    })
-
-  },
-  add: function (e) {
-    e.stopPropagation();
-    e.preventDefault();
-    app.switchPages();
-    document.querySelector("#rem-lbl").focus();
-  },
-  update: function (e) {
-    e.stopPropagation();
-    e.preventDefault();
-    let notification = cordova.plugins.notification.local;
-    notification.get(e.target.id, function (notifications) {
-      let ndate = new Date(notifications.at);
-      let newDate = ndate.toISOString().slice(0, 10);
-      let newTime = ndate.getUTCHours() + ':' + ndate.getUTCMinutes();
-      document.querySelector("#lblDone").dataset.id = notifications.id;
-      document.querySelector("#rem-lbl").value = notifications.title;
-      document.querySelector("#rem-date").value = newDate;
-      document.querySelector("#rem-time").value = newTime;
-    });
-    app.switchPages();
-  },
-  cancel: function (e) {
-    e.stopPropagation();
-    e.preventDefault();
-    app.clearForm();
-    app.switchPages();
-  },
-  save: function (e) {
-    e.stopPropagation();
-    e.preventDefault();
-    let notification = cordova.plugins.notification.local;
-    let newId = new Date().getTime();
-    if (e.target.dataset.id != "") {
-      cordova.plugins.notification.local.cancel(e.target.dataset.id, app.doNothing, this);
-    }
-    let remDt = JSON.parse(moment(document.querySelector("#rem-date").value + "T" + document.querySelector("#rem-time").value + ":00.000Z").format("x"));
-    let newDt = new Date(remDt);
-
-    notification.schedule({
-      id: newId,
-      title: document.querySelector("#rem-lbl").value,
-      at: newDt * 1000
-    }, app.loadEvents);
-    document.querySelector("#lblDone").dataset.id = "";
-    app.clearForm();
-    app.switchPages();
-  },
-  delete: function (e) {
-    e.stopPropagation();
-    e.preventDefault();
-    let lblTitle = "Delete Event?";
-    let lblMessage = "Deleting this reminder will also remove it from the list";
-    let btnLabels = ["Cancel", "Delete"];
-    navigator.notification.confirm(lblMessage, function (btnIndex) {
-      if (btnIndex == 2) {
-        cordova.plugins.notification.local.cancel(parseInt(e.target.id), app.loadEvents, this);
+    if (navigator.geolocation) {
+      let giveUp = 30 * 1000;
+      let tooOld = 60 * 60 * 1000;
+      let options = {
+        enableHighAccuracy: true,
+        timeout: giveUp,
+        maximumAge: tooOld
       }
-    }, lblTitle, btnLabels);
+      map = new google.maps.Map(document.querySelector("#map"), {
+        center: new google.maps.LatLng(45.4215, -75.6972),
+        zoom: 14
+      });
+      var infoWindow = new google.maps.InfoWindow();
+
+      navigator.geolocation.getCurrentPosition(function (position) {
+        let pos = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+        map.setCenter(pos);
+        let marker = new google.maps.Marker({
+          position: new google.maps.LatLng(pos.lat, pos.lng),
+          map: map
+        });
+        infoWindow.setPosition(marker.position);
+        infoWindow.setContent("You are HERE!");
+        marker.addListener('click', () => {
+          infoWindow.open(map, marker);
+        });
+        map.addListener('dblclick', function (e) {
+          app.saveLS(map, e.latLng);
+          // e.preventDefault();
+        });
+      }, function () {
+        app.handleLocationError(true, infoWindow, map.getCenter());
+      }, options);
+      app.loadLS();
+    } else { app.handleLocationError(false, infoWindow, map.getCenter()); }
   },
-  switchPages: function (e) {
-    pages = document.querySelectorAll(".top-banner");
-    pages[0].classList.toggle("hide");
-    pages[1].classList.toggle("hide");
-    pages = document.querySelectorAll(".pages");
-    pages[0].classList.toggle("hide");
-    pages[1].classList.toggle("hide");
+  injectScript: function () {
+    // let doc = document.createElement("script");
+    // doc.addEventListener("load", app.loadEvents);
+    // doc.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY_FOR_IOS}`;
+    // document.head.appendChild(doc);
   },
-  clearForm: function () {
-    document.querySelector("#frmForm").reset();
+  handleLocationError: function (browserHasGeolocation, infoWindow, pos) {
+    infoWindow.setPosition(pos);
+    infoWindow.setContent(browserHasGeolocation ?
+      'Error: The Geolocation service failed.' :
+      'Error: Your browser doesn\'t support geolocation.');
+    infoWindow.open(map);
   },
-  doNothing: function () { console.log("ID Deleted"); }
+  loadLS: function () {
+    let lsPoint = localStorage.getItem("Points");
+    if (lsPoint != null) {
+      app.points = JSON.parse(lsPoint);
+      for (let i = 0; i < app.points.length; i++) {
+        let marker = new google.maps.Marker({
+          position: app.points[i]["position"],
+          map: map
+        });
+        infoWindow = new google.maps.InfoWindow();
+        infoWindow.setPosition(app.points[i]["position"]);
+        infoWindow.setContent(app.points[i]["title"]);
+        marker.addListener('click', () => {
+          infoWindow.open(map, marker);
+          return false;
+        });
+        marker.addListener('dblclick', () => {
+          marker.setMap(null);
+          return false;
+        });
+      };
+    }
+  },
+  saveLS: function (map, pos) {
+    map.panTo(pos);
+    let newPin = window.prompt("Type a comment:");
+    if (newPin != "") {
+      let newPoint = {
+        position: pos,
+        title: newPin
+      };
+      var marker = new google.maps.Marker({
+        position: pos,
+        map: map
+      });
+      infoWindow = new google.maps.InfoWindow();
+      infoWindow.setPosition(marker.position);
+      infoWindow.setContent(newPin);
+      marker.addListener('click', () => {
+        infoWindow.open(map, marker);
+      });
+      if (localStorage['Points']) {
+        app.points = JSON.parse(localStorage['Points']);
+      }
+      if (app.points != null) {
+        app.points.push(newPoint);
+      } else {
+        app.points = [newPoint];
+      }
+      localStorage.setItem("Points", JSON.stringify(app.points));
+      console.log(localStorage['Points']);
+    }
+  }
 };
 
 app.init();

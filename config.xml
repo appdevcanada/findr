@@ -16,6 +16,16 @@
     <allow-intent href="sms:*" />
     <allow-intent href="mailto:*" />
     <allow-intent href="geo:*" />
+    <access origin="about:*" />
+    <allow-navigation href="about:*" />
+    <access origin="https://maps.google.com/*" />
+    <allow-intent href="https://maps.google.com/*" />
+    <access origin="https://maps.gstatic.com/*" />
+    <allow-intent href="https://maps.gstatic.com/*" />
+    <access origin="https://maps.googleapis.com/*" />
+    <allow-intent href="https://maps.googleapis.com/*" />
+    <access origin="https://fonts.googleapis.com/*" />
+    <allow-intent href="https://fonts.googleapis.com/*" />
     <platform name="android">
         <allow-intent href="market:*" />
     </platform>
